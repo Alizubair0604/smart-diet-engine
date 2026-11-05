@@ -65,28 +65,52 @@ void calculate_substitutes(FoodItem target, FoodItem dataset[], int size, FoodIt
 
 // 4. Standalone Test Loop (To run and confirm your math on your machine)
 int main() {
-    FoodItem target;
-    strcpy(target.name, "White Rice");
-    target.protein = 0.1; target.carbs = 0.9; target.fats = 0.0; target.calories = 0.6;
+    // Allocation for up to 1000 items from Ali's CSV file
+    FoodItem dataset[1000]; 
+    int total_items = 0;
 
-    FoodItem mock_dataset[3];
-    
-    strcpy(mock_dataset[0].name, "Cauliflower Rice"); // Closest vector match
-    mock_dataset[0].protein = 0.1; mock_dataset[0].carbs = 0.2; mock_dataset[0].fats = 0.0; mock_dataset[0].calories = 0.1;
+    // Call Ali's parsing function to read the dataset file
+    // Note: Ali must implement this function inside food_structures.h or his C file
+    total_items = load_data_from_csv("nutrition.csv", dataset);
 
-    strcpy(mock_dataset[1].name, "Avocado");
-    mock_dataset[1].protein = 0.1; mock_dataset[1].carbs = 0.3; mock_dataset[1].fats = 0.7; mock_dataset[1].calories = 0.5;
-
-    strcpy(mock_dataset[2].name, "Potato Fries");
-    mock_dataset[2].protein = 0.1; mock_dataset[2].carbs = 0.95; mock_dataset[2].fats = 0.4; mock_dataset[2].calories = 0.8;
-
-    FoodItem results[3];
-    calculate_substitutes(target, mock_dataset, 3, results);
-
-    printf("--- Top Healthy Substitutes for %s ---\n", target.name);
-    for(int i = 0; i < 3; i++) {
-        printf("%d. %s (Protein: %.2f, Carbs: %.2f, Fats: %.2f)\n", 
-               i + 1, results[i].name, results[i].protein, results[i].carbs, results[i].fats);
+    if (total_items == 0) {
+        printf("Error: Could not load data from nutrition.csv or file is empty.\n");
+        return 1;
     }
+
+    // Get target input dynamically from the user
+    FoodItem target;
+    printf("Enter the food item you want to find a substitute for: ");
+    fgets(target.name, sizeof(target.name), stdin);
+    target.name[strcspn(target.name, "\n")] = '\0'; 
+
+ // Cleans the hidden newline character from pressing Enter
+
+    // Find the original target's macros from the database to populate your search vector
+    int found_target = 0;
+    for (int i = 0; i < total_items; i++) {
+        if (strcmp(dataset[i].name, target.name) == 0) {
+            target = dataset[i];
+            found_target = 1;
+            break;
+        }
+    }
+
+    if (!found_target) {
+        printf("Food item '%s' not found in the database.\n", target.name);
+        return 1;
+    }
+
+    // Run your mathematical substitution calculation matrix
+    FoodItem results[3];
+    calculate_substitutes(target, dataset, total_items, results);
+
+    // Display the results dynamically
+    printf("\n--- Top Healthy Substitutes for %s ---\n", target.name);
+    for(int i = 0; i < 3 && i < total_items - 1; i++) {
+        printf("%d. %s (Protein: %.2f, Carbs: %.2f, Fats: %.2f, Calories: %.2f)\n", 
+               i + 1, results[i].name, results[i].protein, results[i].carbs, results[i].fats, results[i].calories);
+    }
+
     return 0;
 }

@@ -2,7 +2,7 @@
 #define FOOD_STRUCTURES_H
 
 typedef struct {
-    char name;
+    char name[100];
     double protein;
     double carbs;
     double fats;

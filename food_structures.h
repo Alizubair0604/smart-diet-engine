@@ -2,7 +2,7 @@
 #define FOOD_STRUCTURES_H
 
 typedef struct {
-    char name[100]; // Fixed: string array to hold names like "Cauliflower Rice"
+    char name[100];
     double protein;
     double carbs;
     double fats;

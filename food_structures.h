@@ -1,3 +1,4 @@
+
 #ifndef FOOD_STRUCTURE_H
 #define FOOD_STRUCTURES_H
 

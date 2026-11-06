@@ -1,12 +1,13 @@
-#ifndef FOOD_STRUCTURES_H
+
+#ifndef FOOD_STRUCTURE_H
 #define FOOD_STRUCTURES_H
 
-typedef struct {
+typedef struct 
+{
     char name[100];
-    double protein;
+     double protein;
     double carbs;
     double fats;
     double calories;
-} FoodItem;
-
+}FoodItem;
 #endif

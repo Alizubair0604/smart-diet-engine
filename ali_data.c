@@ -6,26 +6,26 @@
 #define MAX_LINE   16384
 #define MAX_FIELDS 40
 
-// Splits one CSV line into fields. Handles "quoted, fields" and EMPTY fields
-// correctly (strtok cannot do either). Modifies 'line' in place.
+// break a csv row into separate columns, keeping quoted commas and empty cells
+// strtok didn't work well here, so we parse 'line' directly in place
 static int split_csv_line(char *line, char *fields[], int max_fields) {
     int count = 0;
     char *p = line;
 
     while (count < max_fields) {
         char *out;
-        if (*p == '"') {                       // quoted field
+        if (*p == '"') {                       // if field starts with quotes
             p++;
             fields[count++] = p;
             out = p;
             while (*p) {
-                if (*p == '"' && *(p + 1) == '"') { *out++ = '"'; p += 2; }   // escaped quote
-                else if (*p == '"') { p++; break; }                           // closing quote
+                if (*p == '"' && *(p + 1) == '"') { *out++ = '"'; p += 2; }   // double quote inside quotes
+                else if (*p == '"') { p++; break; }                           // end of quoted text
                 else *out++ = *p++;
             }
-            while (*p && *p != ',') p++;       // skip to the comma
+            while (*p && *p != ',') p++;       // move pointer to next comma
             *out = '\0';
-        } else {                               // plain field (may be empty)
+        } else {                               // normal unquoted value (can be blank)
             fields[count++] = p;
             while (*p && *p != ',') p++;
             if (*p == ',') { *p = '\0'; p++; fields[count - 1] = fields[count - 1]; }
@@ -38,15 +38,15 @@ static int split_csv_line(char *line, char *fields[], int max_fields) {
     return count;
 }
 
-// Finds the column number of a header name (e.g. "protein_g"). Returns -1 if missing.
+// look up column index by header name, return -1 if not found
 static int find_column(char *fields[], int n, const char *name) {
     for (int i = 0; i < n; i++)
         if (strcmp(fields[i], name) == 0) return i;
     return -1;
 }
 
-// Loads the nutrition CSV. Returns the number of foods loaded, or -1 on error.
-// Nutrient values are normalized to 0.0 - 1.0 (see food_structures.h).
+// read food items from csv file (-1 if opening or header check fails)
+// scale macro values between 0.0 and 1.0 before storing
 int load_nutritional_data(const char *filename, FoodItem dataset[], int max_size) {
     FILE *file = fopen(filename, "r");
     if (!file) {
@@ -57,7 +57,7 @@ int load_nutritional_data(const char *filename, FoodItem dataset[], int max_size
     static char line[MAX_LINE];
     char *fields[MAX_FIELDS];
 
-    // Read the header and locate the columns we need by NAME
+  // read first row to find where each required column sits
     if (!fgets(line, sizeof(line), file)) { fclose(file); return 0; }
     line[strcspn(line, "\r\n")] = '\0';
     int nh = split_csv_line(line, fields, MAX_FIELDS);
@@ -85,7 +85,7 @@ int load_nutritional_data(const char *filename, FoodItem dataset[], int max_size
         int n = split_csv_line(line, fields, MAX_FIELDS);
         if (n <= need) continue;
 
-        // Skip rows with a missing nutrient value or an empty name
+        // ignore rows missing food name or any macro value
         if (fields[c_name][0] == '\0' ||
             fields[c_carb][0] == '\0' || fields[c_fat][0] == '\0' ||
             fields[c_prot][0] == '\0') continue;
@@ -94,11 +94,11 @@ int load_nutritional_data(const char *filename, FoodItem dataset[], int max_size
         double fat  = atof(fields[c_fat]);
         double prot = atof(fields[c_prot]);
 
-        // The CSV "calories" column mixes kcal and kJ (e.g. cooked white rice shows 406),
-        // so calories are computed from the macros instead (4/4/9 kcal per gram).
+       // dataset calorie column has mixed units (kcal/kJ), so calculate from macros
+       // using 4 kcal/g for protein and carbs, 9 kcal/g for fat 
         double cal = 4.0 * prot + 4.0 * carb + 9.0 * fat;
 
-        // Skip impossible values (per 100 g: max 100 g of any macro, max 900 kcal)
+       // filter out unrealistic values per 100g (macros > 100g or cal > 900)
         if (cal > CALORIES_SCALE || carb < 0 || carb > CARBS_SCALE ||
             fat < 0 || fat > FATS_SCALE || prot < 0 || prot > PROTEIN_SCALE) continue;
 

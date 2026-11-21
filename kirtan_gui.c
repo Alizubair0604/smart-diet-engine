@@ -7,20 +7,20 @@
 #define MAX_FOODS    50000
 #define VISIBLE_ROWS 7
 
-// Global state for the UI application
+// Variables to handle fooditem app dataset and interface
 static FoodItem app_dataset[MAX_FOODS];
 FoodItem display_results[3];
 int total_available_foods = 0;
 int calculation_triggered = 0;
 
-// Search state
+// Food search and selection variables
 static char search_text[64] = "";
-static int  match_list[MAX_FOODS];   // indices of foods that match the search text
+static int  match_list[MAX_FOODS];   
 static int  match_count = 0;
-static int  list_scroll = 0;         // first visible row of the match list
-static int  selected_index = -1;     // index into app_dataset of the chosen food
+static int  list_scroll = 0;     
+static int  selected_index = -1; 
 
-// Case-insensitive "does text contain query?"
+// Checking case-insensitive query
 static int contains_ci(const char *text, const char *query) {
     if (query[0] == '\0') return 1;
     for (int i = 0; text[i]; i++) {
@@ -40,7 +40,7 @@ static void rebuild_matches(void) {
     list_scroll = 0;
 }
 
-// Draws text, shortening it with "..." so it never exceeds max_width pixels
+// Abridge the text within the given width
 static void DrawTextClipped(const char *text, int x, int y, int size, Color color, int max_width) {
     char buf[128];
     strncpy(buf, text, sizeof(buf) - 1);
@@ -56,7 +56,7 @@ static void DrawTextClipped(const char *text, int x, int y, int size, Color colo
     DrawText(buf, x, y, size, color);
 }
 
-// Mini bar chart: value is normalized 0.0 - 1.0, 'real_text' is the real-unit label
+// Show the nutrient bar with actual value
 static void DrawNutrientBar(int x, int y, const char *label, double value, const char *real_text, Color bar_color) {
     if (value < 0.0) value = 0.0;
     if (value > 1.0) value = 1.0;
@@ -72,7 +72,7 @@ int main() {
     InitWindow(windowWidth, windowHeight, "Smart Diet Substitute & Nutrient Vector Engine");
     SetTargetFPS(60);
 
-    // Load the REAL dataset (Ali's loader + Qasim's engine do the rest)
+    // To load the food data_set
     total_available_foods = load_nutritional_data("nutrition_dataset.csv", app_dataset, MAX_FOODS);
     int load_failed = (total_available_foods <= 0);
     if (!load_failed) {
@@ -85,11 +85,11 @@ int main() {
 
     while (!WindowShouldClose()) {
 
-        // --- INPUT ---
+        // - Input -
         Vector2 mousePos = GetMousePosition();
         int changed = 0;
 
-        // Typing into the search box
+        // The search box for typing
         int ch = GetCharPressed();
         while (ch > 0) {
             int len = (int)strlen(search_text);
@@ -106,14 +106,14 @@ int main() {
         }
         if (changed && !load_failed) rebuild_matches();
 
-        // Scroll the match list with the mouse wheel or Up/Down keys
+        // Scroll through the search bar
         float wheel = GetMouseWheelMove();
         if (wheel < 0 || IsKeyPressed(KEY_DOWN) || IsKeyPressedRepeat(KEY_DOWN)) list_scroll++;
         if (wheel > 0 || IsKeyPressed(KEY_UP)   || IsKeyPressedRepeat(KEY_UP))   list_scroll--;
         if (list_scroll > match_count - VISIBLE_ROWS) list_scroll = match_count - VISIBLE_ROWS;
         if (list_scroll < 0) list_scroll = 0;
 
-        // Clicking a row selects that food
+        // Click the food which showing in the list
         for (int r = 0; r < VISIBLE_ROWS && list_scroll + r < match_count; r++) {
             Rectangle row = { 25, (float)(140 + r * 28), 270, 26 };
             if (CheckCollisionPointRec(mousePos, row) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -122,7 +122,7 @@ int main() {
             }
         }
 
-        // Find-substitutes button (or Enter key)
+        // Calculate backup on button clicks or enter
         if (!load_failed && selected_index >= 0 &&
             ((CheckCollisionPointRec(mousePos, search_btn_bounds) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) ||
              IsKeyPressed(KEY_ENTER))) {
@@ -130,7 +130,7 @@ int main() {
             calculation_triggered = 1;
         }
 
-        // --- DRAWING ---
+        // - Drawing -
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
@@ -185,7 +185,7 @@ int main() {
             DrawText("FIND SUBSTITUTES", 75, 442, 16, WHITE);
         }
 
-        // Results dashboard
+        // Output of dashboard
         DrawText("VECTOR GRAPH METRICS DASHBOARD", 350, 30, 22, DARKGRAY);
         DrawLine(350, 60, 810, 60, LIGHTGRAY);
 
@@ -223,7 +223,7 @@ int main() {
         EndDrawing();
     }
 
-    // 3. De-allocate system allocations and close down process loops safely
+    // Close the window and give the resources 
     CloseWindow();
     return 0;
 }
